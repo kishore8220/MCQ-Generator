@@ -1,0 +1,39 @@
+1. ## MCQ
+    Question: What is the patient's name?
+    A) John Doe
+    B) Paulette Richards
+    C) Skyhart5
+    D) David Coun
+    Correct Answer: B
+
+  2. ## MCQ
+    Question: What is the patient's date of birth?
+    A) 09/22/1963
+    B) 09/22/1945
+    C) 09/22/1953
+    D) 09/22/1978
+    Correct Answer: C
+
+  3. ## MCQ
+    Question: What is the patient's primary care provider?
+    A) David Coun
+    B) Skyhart5
+    C) Justin Timothy Gasper, MD
+    D) 10 UNION SQ ECHO
+    Correct Answer: C
+
+  4. ## MCQ
+    Question: Where does the patient live according to her home phone number?
+    A) 682 STERLING PL
+    B) 11216-3804
+    C) Brooklyn, NY
+    D) Both A and C
+    Correct Answer: D
+
+  5. ## MCQ
+    Question: What was the procedure performed on the patient?
+    A) Transthoracic Echocardiogram (TTE) - Rest Only
+    B) Cardiology Consultation
+    C) Trans-Esophageal Echocardiogram (TEE)
+    D) Magnetic Resonance Imaging (MRI)
+    Correct Answer: A

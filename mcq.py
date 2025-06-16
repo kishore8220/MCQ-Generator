@@ -1,22 +1,19 @@
 import os
+import re
 import pdfplumber
 import docx
 from fpdf import FPDF
+import gradio as gr
 from langchain_ollama import ChatOllama
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 
-# Paths
-UPLOAD_FILE = "pdf2.pdf"  # Change this to your actual file
-NUM_QUESTIONS = 5
+# Output folder setup
 OUTPUT_FOLDER = "results"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# LangChain setup
-llm = ChatOllama(
-    model="qwen3",
-    temperature=0.0
-)
+# LangChain model setup
+llm = ChatOllama(model="mistral`", temperature=0.0)
 
 mcq_prompt = PromptTemplate(
     input_variables=["context", "num_questions"],
@@ -44,56 +41,74 @@ Correct Answer: [correct option]
 
 mcq_chain = LLMChain(llm=llm, prompt=mcq_prompt)
 
-# Text extraction
-def extract_text(file_path):
-    ext = file_path.rsplit('.', 1)[-1].lower()
-    if ext == "pdf":
-        with pdfplumber.open(file_path) as pdf:
+# -------- Utility Functions --------
+
+def extract_text(file):
+    name, ext = os.path.splitext(file.name)
+    ext = ext.lower()
+    if ext == ".pdf":
+        with pdfplumber.open(file) as pdf:
             return ''.join([p.extract_text() for p in pdf.pages if p.extract_text()])
-    elif ext == "docx":
-        doc = docx.Document(file_path)
+    elif ext == ".docx":
+        doc = docx.Document(file)
         return ' '.join([para.text for para in doc.paragraphs])
-    elif ext == "txt":
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
+    elif ext == ".txt":
+        return file.read().decode("utf-8")
     else:
         raise ValueError("Unsupported file type")
 
-# Save text file
-def save_txt(mcqs, filename):
-    path = os.path.join(OUTPUT_FOLDER, filename)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(mcqs)
-    print(f"Saved text to {path}")
+def clean_text(text):
+    # Remove <think>...</think> content
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
 
-# Save PDF
-def save_pdf(mcqs, filename):
+def save_pdf(text, filename):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    for mcq in mcqs.split("## MCQ"):
+    for mcq in text.split("## MCQ"):
         if mcq.strip():
             pdf.multi_cell(0, 10, mcq.strip())
             pdf.ln(5)
     path = os.path.join(OUTPUT_FOLDER, filename)
     pdf.output(path)
-    print(f"Saved PDF to {path}")
+    return path
 
-# Run process
-def main():
-    text = extract_text(UPLOAD_FILE)
-    if not text:
-        print("No text extracted.")
-        return
+# -------- Gradio Interface --------
 
-    print("Generating MCQs...")
-    mcqs = mcq_chain.run({"context": text, "num_questions": NUM_QUESTIONS}).strip()
+def generate_mcqs(file, num_questions):
+    try:
+        raw_text = extract_text(file)
+        cleaned_text = clean_text(raw_text)
 
-    base_name = os.path.basename(UPLOAD_FILE).rsplit('.', 1)[0]
-    save_txt(mcqs, f"generated_mcqs_{base_name}.txt")
-    save_pdf(mcqs, f"generated_mcqs_{base_name}.pdf")
+        mcqs = mcq_chain.run({"context": cleaned_text, "num_questions": num_questions}).strip()
+        
+        base = os.path.splitext(os.path.basename(file.name))[0]
+        txt_path = os.path.join(OUTPUT_FOLDER, f"{base}_mcqs.txt")
+        pdf_path = save_pdf(mcqs, f"{base}_mcqs.pdf")
+        
+        # Save plain text
+        with open(txt_path, 'w', encoding='utf-8') as f:
+            f.write(mcqs)
+        
+        return mcqs, txt_path, pdf_path
 
-    print("\nMCQ Generation Complete!")
+    except Exception as e:
+        return f"Error: {str(e)}", None, None
 
-if __name__ == "__main__":
-    main()
+# UI elements
+iface = gr.Interface(
+    fn=generate_mcqs,
+    inputs=[
+        gr.File(label="Upload PDF / DOCX / TXT"),
+        gr.Slider(1, 20, step=1, value=5, label="Number of MCQs")
+    ],
+    outputs=[
+        gr.Textbox(label="Generated MCQs", lines=15),
+        gr.File(label="Download TXT"),
+        gr.File(label="Download PDF")
+    ],
+    title="MCQ Generator using Qwen3 + LangChain",
+    description="Upload a document and generate MCQs. Content within <think>...</think> will be ignored."
+)
+
+iface.launch()
