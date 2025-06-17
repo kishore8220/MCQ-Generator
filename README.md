@@ -56,7 +56,7 @@ Correct Answer: B
 Update the `UPLOAD_FILE` path in the script and run:
 
 ```bash
-python generate_mcq.py
+python mcq.py
 ```
 
 Your output will be saved inside the `results/` directory.
@@ -66,7 +66,7 @@ Your output will be saved inside the `results/` directory.
 ## 📂 Folder Structure
 
 ```
-├── generate_mcq.py
+├── mcq.py
 ├── results/
 │   ├── generated_mcqs_pdf2.txt
 │   └── generated_mcqs_pdf2.pdf
